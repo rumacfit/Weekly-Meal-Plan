@@ -32,21 +32,21 @@ exports.handler = async (event, context) => {
     // Parse request body
     const { amount, currency, customer_email, customer_name, product } = JSON.parse(event.body);
 
-    // Validate required fields
-    if (!amount || !currency || !customer_email || !customer_name) {
+    // Basic validation
+    if (!customer_email || !customer_name) {
       return {
         statusCode: 400,
         headers,
         body: JSON.stringify({ 
-          error: 'Missing required fields: amount, currency, customer_email, customer_name' 
+          error: 'Missing customer information' 
         }),
       };
     }
 
     // Create payment intent
     const paymentIntent = await stripe.paymentIntents.create({
-      amount: amount, // Amount in cents (1000 = $10.00 AUD)
-      currency: currency,
+      amount: amount || 1000, // Default to $10 AUD if not specified
+      currency: currency || 'aud',
       automatic_payment_methods: {
         enabled: true,
       },
