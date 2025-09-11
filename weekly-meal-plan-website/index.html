@@ -1,0 +1,1259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Meal Plan - Payment & FAQ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+        /* Base styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            overflow-x: hidden;
+        }
+
+        body {
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
+            color: #39393c;
+            /* Single continuous gradient background */
+            background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 25%, #f8f9fa 75%, #faf9f9 100%);
+            min-height: 100vh;
+            width: 100vw;
+        }
+
+        /* Full-width wrapper for both sections */
+        .page-wrapper {
+            width: 100vw;
+            margin: 0;
+            padding: 0;
+            position: relative;
+            left: 50%;
+            right: 50%;
+            margin-left: -50vw;
+            margin-right: -50vw;
+        }
+
+        /* ===== PAYMENT SECTION STYLES ===== */
+        .payment-section {
+            padding: 40px 0 60px 0; /* Reduced bottom padding since FAQ follows */
+            width: 100%;
+        }
+
+        .payment-container {
+            max-width: 1200px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 0 2%;
+        }
+
+        /* Section Header */
+        .payment-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .payment-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 3rem;
+            font-weight: 400;
+            color: #39393c;
+            line-height: 1.2;
+            margin-bottom: 16px;
+            margin-top: 0;
+        }
+
+        .payment-subtitle {
+            font-family: 'Open Sans', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 400;
+            color: #666;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        /* Main payment grid */
+        .payment-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 60px;
+            align-items: flex-start;
+        }
+
+        /* Package selection */
+        .package-selection {
+            background: #f8f9fa;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .package-selection:hover {
+            background: white;
+            border-color: #c4d9c1;
+            box-shadow: 0 10px 40px rgba(196, 217, 193, 0.15);
+        }
+
+        .package-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .package-name {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 700;
+            color: #39393c;
+            margin-bottom: 4px;
+        }
+
+        .package-duration {
+            font-size: 0.95rem;
+            color: #666;
+            margin-bottom: 20px;
+        }
+
+        .special-offer {
+            background: linear-gradient(135deg, #c4d9c1 0%, #b3d0af 100%);
+            color: white;
+            font-size: 0.9rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 16px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .package-price {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .original-price {
+            font-size: 1.2rem;
+            color: #999;
+            text-decoration: line-through;
+            margin-bottom: 4px;
+        }
+
+        .current-price {
+            display: flex;
+            align-items: baseline;
+            justify-content: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .price-currency {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #c4d9c1;
+        }
+
+        .price-amount {
+            font-family: 'Playfair Display', serif;
+            font-size: 3.5rem;
+            font-weight: 700;
+            color: #39393c;
+            line-height: 1;
+        }
+
+        .price-period {
+            font-size: 1rem;
+            color: #666;
+            align-self: flex-end;
+            margin-bottom: 8px;
+        }
+
+        .pricing-note {
+            font-size: 0.9rem;
+            color: #c4d9c1;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .package-features {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .package-features li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            margin-bottom: 16px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .package-features li::before {
+            content: '✓';
+            color: #c4d9c1;
+            font-weight: 600;
+            font-size: 1.1rem;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .package-popular {
+            position: relative;
+            border-color: #c4d9c1;
+            background: white;
+        }
+
+        .popular-badge {
+            position: absolute;
+            top: -12px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #c4d9c1;
+            color: white;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 6px 20px;
+            border-radius: 20px;
+        }
+
+        /* Payment form */
+        .payment-form-container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
+            transition: all 0.3s ease;
+        }
+
+        .payment-form-container:hover {
+            background: #f8f9fa;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.12);
+        }
+
+        .form-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            font-weight: 400;
+            color: #39393c;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #39393c;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 16px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            font-family: 'Open Sans', sans-serif;
+            font-size: 1rem;
+            color: #39393c;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #c4d9c1;
+            box-shadow: 0 0 0 3px rgba(196, 217, 193, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        /* Order summary */
+        .order-summary {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 30px;
+        }
+
+        .summary-title {
+            font-weight: 600;
+            color: #39393c;
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+        }
+
+        .summary-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+            font-size: 0.95rem;
+        }
+
+        .summary-row.total {
+            border-top: 2px solid #e9ecef;
+            padding-top: 16px;
+            margin-top: 16px;
+            font-weight: 600;
+            font-size: 1.1rem;
+            color: #39393c;
+        }
+
+        /* Enhanced Stripe Elements styling */
+        .stripe-element {
+            width: 100%;
+            min-height: 50px;
+            padding: 16px 20px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            background: white;
+            transition: all 0.3s ease;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        .stripe-element--focus {
+            border-color: #c4d9c1;
+            box-shadow: 0 0 0 3px rgba(196, 217, 193, 0.1);
+        }
+
+        .stripe-element--invalid {
+            border-color: #dc3545;
+        }
+
+        .stripe-element--empty {
+            color: #999;
+        }
+
+        #card-element {
+            width: 100% !important;
+            min-height: 50px !important;
+        }
+
+        .stripe-loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 50px;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Payment button */
+        .pay-button {
+            width: 100%;
+            background: linear-gradient(135deg, #c4d9c1 0%, #b3d0af 100%);
+            color: white;
+            font-family: 'Open Sans', sans-serif;
+            font-size: 1.1rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 18px 36px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 20px rgba(196, 217, 193, 0.3);
+            min-height: 56px;
+        }
+
+        .pay-button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(196, 217, 193, 0.4);
+        }
+
+        .pay-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        /* Security badge */
+        .security-info {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .security-icon {
+            width: 20px;
+            height: 20px;
+            opacity: 0.7;
+        }
+
+        /* Error and success messages */
+        .error-message {
+            color: #dc3545;
+            font-size: 0.85rem;
+            margin-top: 8px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        /* Loading state */
+        .loading {
+            position: relative;
+            pointer-events: none;
+        }
+
+        .loading::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 20px;
+            height: 20px;
+            margin: -10px 0 0 -10px;
+            border: 2px solid #ffffff;
+            border-radius: 50%;
+            border-top-color: transparent;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* ===== FAQ SECTION STYLES ===== */
+        .faq-section {
+            padding: 60px 0 80px 0; /* Reduced top padding since payment section is above */
+            width: 100%;
+        }
+
+        .faq-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .faq-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .faq-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.4rem;
+            font-weight: 400;
+            color: #39393c;
+            line-height: 1.2;
+            margin-bottom: 15px;
+        }
+
+        .highlight-pink {
+            color: #C89999;
+            font-weight: 700;
+        }
+
+        .faq-subtitle {
+            font-size: 1.1rem;
+            color: #666;
+            line-height: 1.5;
+            padding: 0;
+        }
+
+        .faq-list {
+            margin-bottom: 50px;
+        }
+
+        .faq-item {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: all 0.3s ease;
+            border: 1px solid rgba(200, 153, 153, 0.6);
+        }
+
+        .faq-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .faq-item:hover {
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+            border-color: rgba(200, 153, 153, 0.8);
+        }
+
+        .faq-item.active {
+            border-color: rgba(200, 153, 153, 0.8);
+        }
+
+        .faq-question {
+            padding: 28px 30px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .faq-item.active .faq-question {
+            background: linear-gradient(135deg, #faf9f9 0%, #ffffff 100%);
+        }
+
+        .faq-question h3 {
+            font-size: 1.2rem;
+            font-weight: 400;
+            color: #39393c;
+            margin: 0;
+            line-height: 1.4;
+            flex: 1;
+            padding-right: 30px;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        .faq-toggle {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .faq-toggle::before {
+            content: '+';
+            color: #C89999;
+            font-size: 22px;
+            font-weight: 300;
+            transition: all 0.3s ease;
+            font-family: 'Open Sans', sans-serif;
+        }
+
+        .faq-item.active .faq-toggle::before {
+            transform: rotate(45deg);
+            color: #b88888;
+        }
+
+        .faq-answer {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.4s ease;
+        }
+
+        .faq-item.active .faq-answer {
+            max-height: 400px;
+        }
+
+        .faq-answer-content {
+            padding: 16px 30px 28px 30px;
+            color: #555;
+            line-height: 1.6;
+            font-size: 1rem;
+            font-family: 'Open Sans', sans-serif;
+            border-top: 1px solid #f5f5f5;
+        }
+
+        .faq-answer-content p {
+            margin-bottom: 16px;
+            line-height: 1.6;
+        }
+
+        .faq-answer-content p:first-child {
+            margin-top: 16px;
+        }
+
+        .faq-answer-content p:last-child {
+            margin-bottom: 0;
+        }
+
+        .highlight {
+            color: #C89999;
+            font-weight: 600;
+        }
+
+        /* Final CTA section */
+        .final-cta-section {
+            text-align: center;
+            background: white;
+            padding: 45px 40px;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+            border: 1px solid #f1f3f4;
+            margin-top: 20px;
+            margin-bottom: 0;
+        }
+
+        .final-cta-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2.2rem;
+            font-weight: 400;
+            color: #39393c;
+            margin-bottom: 15px;
+            line-height: 1.3;
+        }
+
+        .final-cta-text {
+            font-size: 1.1rem;
+            color: #666;
+            margin-bottom: 8px;
+            line-height: 1.5;
+        }
+
+        .final-cta-text:last-of-type {
+            margin-bottom: 25px;
+            font-weight: 500;
+            color: #39393c;
+        }
+
+        .cta-highlight {
+            color: #C89999;
+            font-weight: 600;
+        }
+
+        .final-cta-button {
+            background: #C89999;
+            color: white !important;
+            font-family: 'Open Sans', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            padding: 16px 32px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: all 0.3s ease;
+            min-width: 280px;
+        }
+
+        .final-cta-button:hover {
+            background: #b88888;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(200, 153, 153, 0.3);
+        }
+
+        /* ===== RESPONSIVE DESIGN ===== */
+        @media (max-width: 768px) {
+            .payment-grid {
+                grid-template-columns: 1fr;
+                gap: 40px;
+            }
+            
+            .payment-section {
+                padding: 30px 0 50px 0;
+            }
+            
+            .faq-section {
+                padding: 40px 0 60px 0;
+            }
+            
+            .payment-header {
+                margin-bottom: 30px;
+                margin-top: 10px;
+            }
+            
+            .payment-title, .faq-title {
+                font-size: 2.2rem;
+                margin-top: 0;
+            }
+            
+            .package-selection,
+            .payment-form-container {
+                padding: 30px 20px;
+            }
+            
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .form-input, 
+            .stripe-element {
+                padding: 18px 20px;
+                font-size: 16px;
+                min-height: 54px;
+            }
+
+            .pay-button {
+                padding: 20px 36px;
+                font-size: 1rem;
+                min-height: 60px;
+            }
+
+            .faq-container {
+                max-width: 100%;
+                padding: 0 5%;
+            }
+
+            .faq-question {
+                padding: 24px 20px;
+            }
+
+            .faq-question h3 {
+                font-size: 1.1rem;
+                padding-right: 20px;
+            }
+
+            .faq-answer-content {
+                padding: 0 20px 24px 20px;
+                font-size: 0.95rem;
+            }
+
+            .final-cta-section {
+                padding: 35px 25px;
+                margin-bottom: 0;
+            }
+
+            .final-cta-title {
+                font-size: 1.9rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .payment-container, .faq-container {
+                padding: 0 4%;
+            }
+            
+            .payment-section {
+                padding: 20px 0 40px 0;
+            }
+            
+            .faq-section {
+                padding: 30px 0 50px 0;
+            }
+            
+            .payment-header {
+                margin-bottom: 25px;
+                margin-top: 10px;
+            }
+            
+            .payment-title, .faq-title {
+                font-size: 1.8rem;
+                margin-top: 0;
+            }
+            
+            .package-name {
+                font-size: 1.6rem;
+            }
+            
+            .price-amount {
+                font-size: 2.8rem;
+            }
+
+            .package-selection,
+            .payment-form-container {
+                padding: 20px 15px;
+            }
+
+            .form-input, 
+            .stripe-element {
+                font-size: 16px;
+                min-height: 50px;
+            }
+            
+            .faq-question {
+                padding: 20px 16px;
+            }
+            
+            .faq-question h3 {
+                font-size: 1rem;
+                padding-right: 16px;
+            }
+            
+            .faq-answer-content {
+                padding: 12px 16px 20px 16px;
+                font-size: 0.9rem;
+            }
+            
+            .final-cta-title {
+                font-size: 1.7rem;
+            }
+            
+            .final-cta-button {
+                min-width: 250px;
+                font-size: 0.95rem;
+                padding: 15px 25px;
+            }
+
+            .final-cta-section {
+                margin-bottom: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page-wrapper">
+        <!-- PAYMENT SECTION -->
+        <section class="payment-section">
+            <div class="payment-container">
+                <!-- Section Header -->
+                <div class="payment-header">
+                    <h2 class="payment-title">Start Your <span style="color: #c4d9c1;">Weekly Meal Plan</span></h2>
+                    <p class="payment-subtitle">Join hundreds who have transformed their nutrition and achieved lasting results.</p>
+                </div>
+
+                <!-- Payment Grid -->
+                <div class="payment-grid">
+                    <!-- Package Selection -->
+                    <div class="package-selection package-popular">
+                        <div class="popular-badge">50% OFF</div>
+                        <div class="package-header">
+                            <h3 class="package-name">Weekly Meal Plan</h3>
+                            <p class="package-duration">Ongoing Nutrition Support</p>
+                            
+                            <div class="special-offer">First 4 Weeks Half Price</div>
+
+                            <div class="package-price">
+                                <div class="original-price">Was $20/week</div>
+                                <div class="current-price">
+                                    <span class="price-currency">$</span>
+                                    <span class="price-amount">10</span>
+                                    <span class="price-period">per week</span>
+                                </div>
+                                <div class="pricing-note">First 4 weeks, then $20/week</div>
+                            </div>
+                        </div>
+                        
+                        <ul class="package-features">
+                            <li>Weekly tailored meal plans delivered</li>
+                            <li>Mobile app with all recipes & shopping lists</li>
+                            <li>Nutrition education & habit coaching</li>
+                            <li>Private community support group</li>
+                            <li>Ingredient & Recipe substitution guide</li>
+                            <li>Cancel anytime - no long-term commitment</li>
+                            <li>14-day money-back guarantee</li>
+                        </ul>
+                    </div>
+
+                    <!-- Payment Form -->
+                    <div class="payment-form-container">
+                        <h3 class="form-title">Secure Checkout</h3>
+                        
+                        <!-- Success Message -->
+                        <div id="success-message" class="success-message">
+                            Payment successful! You'll receive a confirmation email shortly.
+                        </div>
+                        
+                        <form id="payment-form">
+                            <!-- Order Summary -->
+                            <div class="order-summary">
+                                <h4 class="summary-title">Order Summary</h4>
+                                <div class="summary-row">
+                                    <span>Weekly Meal Plan (Weekly)</span>
+                                    <span style="text-decoration: line-through; color: #999;">$20.00</span>
+                                </div>
+                                <div class="summary-row">
+                                    <span>Special Price (50% OFF)</span>
+                                    <span style="color: #c4d9c1; font-weight: 600;">-$10.00</span>
+                                </div>
+                                <div class="summary-row total">
+                                    <span>Total (Weekly)</span>
+                                    <span>$10.00 AUD</span>
+                                </div>
+                            </div>
+
+                            <!-- Customer Information -->
+                            <div class="form-group">
+                                <label class="form-label" for="email">Email Address</label>
+                                <input type="email" id="email" name="email" class="form-input" required>
+                                <div id="email-error" class="error-message"></div>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="firstName">First Name</label>
+                                    <input type="text" id="firstName" name="firstName" class="form-input" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="lastName">Last Name</label>
+                                    <input type="text" id="lastName" name="lastName" class="form-input" required>
+                                </div>
+                            </div>
+
+                            <!-- Card Information -->
+                            <div class="form-group">
+                                <label class="form-label" for="card-element">Card Information</label>
+                                <div id="card-element" class="stripe-element">
+                                    <div class="stripe-loading">Loading secure payment form...</div>
+                                </div>
+                                <div id="card-errors" class="error-message" role="alert"></div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <button type="submit" id="submit-button" class="pay-button">
+                                Start Weekly Plan - $10 AUD
+                            </button>
+
+                            <!-- Security Info -->
+                            <div class="security-info">
+                                <svg class="security-icon" viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21V5L12,1M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/>
+                                </svg>
+                                <span>Secured by Stripe & 256-bit SSL encryption</span>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- FAQ SECTION -->
+        <section class="faq-section">
+            <div class="faq-container">
+                <div class="faq-header">
+                    <h2 class="faq-title">Frequently Asked <span class="highlight-pink">Questions</span></h2>
+                    <p class="faq-subtitle">Everything you need to know about fuelling your fitness journey with precision nutrition</p>
+                </div>
+
+                <div class="faq-list">
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>How does the weekly meal plan work?</h3>
+                            <div class="faq-toggle"></div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p>Each week you'll receive a <span class="highlight">personalized meal plan</span> tailored to your individual metrics including body composition, activity level, and fitness goals.</p>
+                                <p>Your weekly plan includes macro-balanced meals, snack suggestions, shopping lists, and meal prep instructions delivered straight to your app every Sunday.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>What's included in my weekly meal plan?</h3>
+                            <div class="faq-toggle"></div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p>Your <span class="highlight">weekly plan for just $10</span> (first 4 weeks) includes complete macro-balanced meal plans, detailed shopping lists, meal prep instructions, and portion guides.</p>
+                                <p>You'll also get access to our private community, ingredient substitution guides, and ongoing nutrition education to help you build lasting healthy habits.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>How do I time my nutrition around training sessions?</h3>
+                            <div class="faq-toggle"></div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p>Nutrient timing is crucial for <span class="highlight">maximising performance and recovery</span>. We provide specific guidance on when to eat carbohydrates, proteins, and fats relative to your workouts.</p>
+                                <p>This includes pre-workout fuelling strategies, intra-workout nutrition for longer sessions, and post-workout recovery protocols to optimise muscle protein synthesis.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>Can I cancel my weekly plan anytime?</h3>
+                            <div class="faq-toggle"></div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p>Absolutely! There's <span class="highlight">no long-term commitment</span> required. You can cancel your weekly meal plan at any time through your account settings.</p>
+                                <p>We also offer a 14-day money-back guarantee, so if you're not completely satisfied with your first week, we'll refund your payment in full.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>What if I have dietary restrictions or allergies?</h3>
+                            <div class="faq-toggle"></div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p>While we don't create separate meal plans for different dietary requirements, we provide comprehensive <span class="highlight">swap guides</span> to help you substitute proteins and other ingredients to suit your needs.</p>
+                                <p>We encourage you to make adjustments where necessary so the plan fits perfectly with your preferences and dietary requirements, ensuring you can still achieve your goals while eating foods you enjoy.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>How quickly will I see results from following the plan?</h3>
+                            <div class="faq-toggle"></div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p>Most people notice improved <span class="highlight">energy levels and workout performance</span> within the first week of following their tailored nutrition plan.</p>
+                                <p>Body composition changes typically become noticeable after 2-3 weeks of consistent adherence, with ongoing improvements as you continue with your weekly meal plans and proper training.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="faq-item">
+                        <div class="faq-question">
+                            <h3>Do you provide support if I have questions about my plan?</h3>
+                            <div class="faq-toggle"></div>
+                        </div>
+                        <div class="faq-answer">
+                            <div class="faq-answer-content">
+                                <p>Yes! We provide ongoing support to help you succeed with your nutrition journey. Our team is available to answer questions about meal planning, macro calculations, and optimisation strategies.</p>
+                                <p>You'll also have access to our community of like-minded athletes who share tips, recipes, and motivation to help you stay on track week after week.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="final-cta-section">
+                    <h3 class="final-cta-title">Ready to Transform Your Nutrition?</h3>
+                    <p class="final-cta-text">Start your <span class="cta-highlight">Weekly Meal Plan</span> and gain confidence in your nutrition.</p>
+                    <p class="final-cta-text">Get weekly recipes, community support, and expert guidance.</p>
+                    <p class="final-cta-text">First 4 weeks for only <span class="cta-highlight">$10/week</span>, then continue your journey.</p>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <script>
+        // Your Stripe publishable key
+        const STRIPE_PUBLISHABLE_KEY = 'pk_live_51Q2LCE07R5diESFNmQjsaR1MyCYxtwOIjy9tzweu1E1F6MA4Imy5zobVINqRogKbokjEmyUQ8krMLkAClnn8nmtk00KHZp880X';
+        
+        // Netlify function endpoint
+        const SERVER_ENDPOINT = '/.netlify/functions/create-payment-intent';
+        
+        let stripe;
+        let elements;
+        let cardElement;
+
+        // Initialize Stripe when page loads
+        async function initializeStripe() {
+            try {
+                console.log('🔄 Initializing Stripe...');
+                
+                // Initialize Stripe
+                stripe = Stripe(STRIPE_PUBLISHABLE_KEY);
+                elements = stripe.elements();
+
+                // Create card element with enhanced mobile styling
+                cardElement = elements.create('card', {
+                    style: {
+                        base: {
+                            fontSize: '16px',
+                            fontFamily: '"Open Sans", sans-serif',
+                            color: '#39393c',
+                            fontWeight: '400',
+                            lineHeight: '24px',
+                            '::placeholder': {
+                                color: '#999',
+                                fontWeight: '400',
+                            },
+                        },
+                        invalid: {
+                            color: '#dc3545',
+                            iconColor: '#dc3545'
+                        },
+                        complete: {
+                            color: '#28a745',
+                        }
+                    },
+                    hidePostalCode: true
+                });
+
+                // Clear loading indicator and mount the card element
+                const cardContainer = document.getElementById('card-element');
+                cardContainer.innerHTML = '';
+                cardElement.mount('#card-element');
+
+                // Handle real-time validation errors from the card Element
+                cardElement.on('change', ({error}) => {
+                    const displayError = document.getElementById('card-errors');
+                    if (error) {
+                        displayError.textContent = error.message;
+                        displayError.classList.add('show');
+                    } else {
+                        displayError.textContent = '';
+                        displayError.classList.remove('show');
+                    }
+                });
+
+                // Handle ready event
+                cardElement.on('ready', () => {
+                    console.log('✅ Stripe card element is ready');
+                });
+
+                console.log('✅ Stripe initialized successfully');
+            } catch (error) {
+                console.error('❌ Error initializing Stripe:', error);
+                const cardContainer = document.getElementById('card-element');
+                cardContainer.innerHTML = '<div style="color: #dc3545; padding: 16px; text-align: center;">Error loading payment form. Please refresh the page.</div>';
+            }
+        }
+
+        // Initialize when DOM is loaded
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initializeStripe);
+        } else {
+            initializeStripe();
+        }
+
+        // Handle form submission
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.getElementById('payment-form');
+            const submitButton = document.getElementById('submit-button');
+
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+
+                if (!stripe || !cardElement) {
+                    showError('Payment system not ready. Please refresh the page.');
+                    return;
+                }
+
+                // Disable submit button and show loading state
+                submitButton.disabled = true;
+                submitButton.classList.add('loading');
+                submitButton.textContent = '';
+
+                // Get customer information
+                const email = document.getElementById('email').value;
+                const firstName = document.getElementById('firstName').value;
+                const lastName = document.getElementById('lastName').value;
+
+                try {
+                    console.log('🔄 Creating payment intent...');
+                    console.log('📍 Endpoint:', SERVER_ENDPOINT);
+
+                    // Step 1: Create payment intent via Netlify function
+                    const response = await fetch(SERVER_ENDPOINT, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            amount: 1000, // $10.00 AUD in cents
+                            currency: 'aud',
+                            customer_email: email,
+                            customer_name: `${firstName} ${lastName}`,
+                            product: 'weekly-meal-plan'
+                        }),
+                    });
+
+                    console.log('📊 Response status:', response.status);
+                    
+                    if (!response.ok) {
+                        const errorText = await response.text();
+                        console.error('❌ Server error:', errorText);
+                        throw new Error(`Server error: ${response.status}`);
+                    }
+
+                    const responseData = await response.json();
+                    console.log('✅ Payment intent created:', responseData.payment_intent_id);
+
+                    if (!responseData.client_secret) {
+                        throw new Error('❌ No client_secret in response');
+                    }
+
+                    // Step 2: Confirm payment with Stripe
+                    console.log('💳 Confirming payment with Stripe...');
+                    const result = await stripe.confirmCardPayment(responseData.client_secret, {
+                        payment_method: {
+                            card: cardElement,
+                            billing_details: {
+                                name: `${firstName} ${lastName}`,
+                                email: email,
+                            },
+                        }
+                    });
+
+                    if (result.error) {
+                        console.error('❌ Payment failed:', result.error);
+                        showError(result.error.message);
+                    } else {
+                        console.log('🎉 Payment succeeded:', result.paymentIntent);
+                        showSuccess();
+                    }
+
+                } catch (error) {
+                    console.error('💥 Payment error:', error);
+                    showError('There was an issue processing your payment. Please try again.');
+                }
+
+                // Re-enable submit button
+                submitButton.disabled = false;
+                submitButton.classList.remove('loading');
+                submitButton.textContent = 'Start Weekly Plan - $10 AUD';
+            });
+        });
+
+        // Helper functions for payment
+        function showError(message) {
+            const errorElement = document.getElementById('card-errors');
+            errorElement.textContent = message;
+            errorElement.classList.add('show');
+            
+            setTimeout(() => {
+                errorElement.classList.remove('show');
+            }, 5000);
+        }
+
+        function showSuccess() {
+            const successElement = document.getElementById('success-message');
+            successElement.classList.add('show');
+            
+            document.getElementById('payment-form').style.display = 'none';
+        }
+
+        // FAQ functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            document.querySelectorAll('.faq-question').forEach(question => {
+                question.addEventListener('click', () => {
+                    const faqItem = question.parentElement;
+                    const isActive = faqItem.classList.contains('active');
+                    
+                    // Close all other FAQ items
+                    document.querySelectorAll('.faq-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    
+                    // Toggle current item
+                    if (!isActive) {
+                        faqItem.classList.add('active');
+                    }
+                });
+            });
+        });
+
+        console.log('✅ Weekly meal plan page script loaded');
+    </script>
+</body>
+</html>

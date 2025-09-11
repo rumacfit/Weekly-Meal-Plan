@@ -1,0 +1,17 @@
+{
+  "name": "weekly-meal-plan-payments",
+  "version": "1.0.0",
+  "description": "Weekly meal plan payment system with Stripe - $10 AUD per week",
+  "main": "index.js",
+  "scripts": {
+    "dev": "netlify dev",
+    "build": "echo 'No build step required'",
+    "start": "netlify dev"
+  },
+  "dependencies": {
+    "stripe": "^12.18.0"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+}
