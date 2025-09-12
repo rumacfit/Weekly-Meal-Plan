@@ -1,13 +1,11 @@
 [build]
-  functions = "netlify/functions"
-  publish = "."
+  base = "weekly-meal-plan-website"
+  functions = "weekly-meal-plan-website/functions"
+  publish = "weekly-meal-plan-website"
   command = "npm install"
 
 [build.environment]
   NODE_VERSION = "18"
-
-[functions]
-  directory = "netlify/functions"
 
 [[redirects]]
   from = "/*"
