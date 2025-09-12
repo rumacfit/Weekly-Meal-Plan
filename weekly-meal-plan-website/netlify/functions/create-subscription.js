@@ -1,4 +1,4 @@
-// This file should be at: netlify/functions/create-subscription.js
+// netlify/functions/create-subscription.js
 
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
@@ -56,7 +56,6 @@ exports.handler = async (event, context) => {
     // Step 1: Create or get product and price
     let priceId;
     try {
-      // Try to get existing product first
       const products = await stripe.products.list({
         limit: 100,
       });
@@ -64,7 +63,6 @@ exports.handler = async (event, context) => {
       let product = products.data.find(p => p.metadata.plan_type === 'weekly-meal-plan');
       
       if (!product) {
-        // Create product if it doesn't exist
         product = await stripe.products.create({
           name: 'Weekly Meal Plan',
           description: 'Personalized weekly meal plans with nutrition coaching',
@@ -77,7 +75,6 @@ exports.handler = async (event, context) => {
         console.log('Using existing product:', product.id);
       }
 
-      // Try to get existing price for this product
       const prices = await stripe.prices.list({
         product: product.id,
         limit: 10,
@@ -90,7 +87,6 @@ exports.handler = async (event, context) => {
       );
       
       if (!price) {
-        // Create price if it doesn't exist
         price = await stripe.prices.create({
           product: product.id,
           unit_amount: 2000, // $20 AUD in cents
@@ -130,12 +126,10 @@ exports.handler = async (event, context) => {
         customer = existingCustomers.data[0];
         console.log('Found existing customer:', customer.id);
         
-        // Attach payment method to existing customer
         await stripe.paymentMethods.attach(payment_method_id, {
           customer: customer.id,
         });
         
-        // Update customer's default payment method
         await stripe.customers.update(customer.id, {
           invoice_settings: {
             default_payment_method: payment_method_id,
@@ -167,13 +161,11 @@ exports.handler = async (event, context) => {
     // Step 3: Create or get promotional coupon
     let couponId = null;
     try {
-      // Try to get existing coupon first
       try {
         const existingCoupon = await stripe.coupons.retrieve('FIRST_4_WEEKS_50_OFF');
         couponId = existingCoupon.id;
         console.log('Using existing coupon:', couponId);
       } catch (retrieveError) {
-        // Coupon doesn't exist, create it
         const coupon = await stripe.coupons.create({
           id: 'FIRST_4_WEEKS_50_OFF',
           percent_off: 50,
@@ -186,7 +178,6 @@ exports.handler = async (event, context) => {
       }
     } catch (couponError) {
       console.error('Coupon error:', couponError);
-      // Continue without coupon if it fails
     }
 
     // Step 4: Create subscription
@@ -194,7 +185,7 @@ exports.handler = async (event, context) => {
       const subscriptionData = {
         customer: customer.id,
         items: [{
-          price: priceId, // Use the price ID instead of price_data
+          price: priceId,
         }],
         payment_behavior: 'default_incomplete',
         payment_settings: { 
@@ -208,7 +199,6 @@ exports.handler = async (event, context) => {
         },
       };
 
-      // Add coupon if available
       if (couponId) {
         subscriptionData.discounts = [{ coupon: couponId }];
       }
