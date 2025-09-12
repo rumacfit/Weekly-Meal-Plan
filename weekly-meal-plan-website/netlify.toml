@@ -1,7 +1,6 @@
 [build]
-  base = "weekly-meal-plan-website"
-  functions = "weekly-meal-plan-website/functions"
-  publish = "weekly-meal-plan-website"
+  functions = "functions"
+  publish = "."
   command = "npm install"
 
 [build.environment]
