@@ -1048,7 +1048,7 @@
         // Your Stripe publishable key
         const STRIPE_PUBLISHABLE_KEY = 'pk_live_51Q2LCE07R5diESFNmQjsaR1MyCYxtwOIjy9tzweu1E1F6MA4Imy5zobVINqRogKbokjEmyUQ8krMLkAClnn8nmtk00KHZp880X';
         
-        // Netlify function endpoint
+        // Netlify function endpoint - UPDATED FOR SUBSCRIPTION
         const SERVER_ENDPOINT = '/.netlify/functions/create-subscription';
         
         let stripe;
@@ -1126,7 +1126,7 @@
             initializeStripe();
         }
 
-        // Handle form submission
+        // Handle form submission for subscription
         document.addEventListener('DOMContentLoaded', function() {
             const form = document.getElementById('payment-form');
             const submitButton = document.getElementById('submit-button');
@@ -1150,21 +1150,38 @@
                 const lastName = document.getElementById('lastName').value;
 
                 try {
-                    console.log('🔄 Creating payment intent...');
-                    console.log('📍 Endpoint:', SERVER_ENDPOINT);
+                    console.log('🔄 Creating payment method...');
 
-                    // Step 1: Create payment intent via Netlify function
+                    // Step 1: Create payment method
+                    const {paymentMethod, error: pmError} = await stripe.createPaymentMethod({
+                        type: 'card',
+                        card: cardElement,
+                        billing_details: {
+                            name: `${firstName} ${lastName}`,
+                            email: email,
+                        },
+                    });
+
+                    if (pmError) {
+                        console.error('❌ Payment method creation failed:', pmError);
+                        showError(pmError.message);
+                        return;
+                    }
+
+                    console.log('✅ Payment method created:', paymentMethod.id);
+                    console.log('🔄 Creating subscription...');
+                    console.log('🔍 Endpoint:', SERVER_ENDPOINT);
+
+                    // Step 2: Create subscription via Netlify function
                     const response = await fetch(SERVER_ENDPOINT, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
                         },
                         body: JSON.stringify({
-                            amount: 1000, // $10.00 AUD in cents
-                            currency: 'aud',
                             customer_email: email,
                             customer_name: `${firstName} ${lastName}`,
-                            product: 'weekly-meal-plan'
+                            payment_method_id: paymentMethod.id
                         }),
                     });
 
@@ -1177,41 +1194,33 @@
                     }
 
                     const responseData = await response.json();
-                    console.log('✅ Payment intent created:', responseData.payment_intent_id);
+                    console.log('✅ Subscription created:', responseData.subscription_id);
 
                     if (!responseData.client_secret) {
                         throw new Error('❌ No client_secret in response');
                     }
 
-                    // Step 2: Confirm payment with Stripe
-                    console.log('💳 Confirming payment with Stripe...');
-                    const result = await stripe.confirmCardPayment(responseData.client_secret, {
-                        payment_method: {
-                            card: cardElement,
-                            billing_details: {
-                                name: `${firstName} ${lastName}`,
-                                email: email,
-                            },
-                        }
-                    });
+                    // Step 3: Confirm subscription payment with Stripe
+                    console.log('💳 Confirming subscription payment...');
+                    const result = await stripe.confirmCardPayment(responseData.client_secret);
 
                     if (result.error) {
-                        console.error('❌ Payment failed:', result.error);
+                        console.error('❌ Subscription payment failed:', result.error);
                         showError(result.error.message);
                     } else {
-                        console.log('🎉 Payment succeeded:', result.paymentIntent);
+                        console.log('🎉 Subscription payment succeeded!');
                         showSuccess();
                     }
 
                 } catch (error) {
-                    console.error('💥 Payment error:', error);
-                    showError('There was an issue processing your payment. Please try again.');
+                    console.error('💥 Subscription error:', error);
+                    showError('There was an issue setting up your subscription. Please try again.');
+                } finally {
+                    // Re-enable submit button
+                    submitButton.disabled = false;
+                    submitButton.classList.remove('loading');
+                    submitButton.textContent = 'Start Weekly Plan - $10 AUD';
                 }
-
-                // Re-enable submit button
-                submitButton.disabled = false;
-                submitButton.classList.remove('loading');
-                submitButton.textContent = 'Start Weekly Plan - $10 AUD';
             });
         });
 
@@ -1228,6 +1237,7 @@
 
         function showSuccess() {
             const successElement = document.getElementById('success-message');
+            successElement.textContent = 'Subscription created successfully! You\'ll receive a confirmation email shortly and be charged $10/week for the first 4 weeks, then $20/week.';
             successElement.classList.add('show');
             
             document.getElementById('payment-form').style.display = 'none';
@@ -1253,7 +1263,7 @@
             });
         });
 
-        console.log('✅ Weekly meal plan page script loaded');
+        console.log('✅ Weekly meal plan subscription script loaded');
     </script>
 </body>
 </html>
