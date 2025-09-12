@@ -53,7 +53,72 @@ exports.handler = async (event, context) => {
 
     console.log('Creating subscription for:', customer_email);
 
-    // Step 1: Create customer
+    // Step 1: Create or get product and price
+    let priceId;
+    try {
+      // Try to get existing product first
+      const products = await stripe.products.list({
+        limit: 100,
+      });
+      
+      let product = products.data.find(p => p.metadata.plan_type === 'weekly-meal-plan');
+      
+      if (!product) {
+        // Create product if it doesn't exist
+        product = await stripe.products.create({
+          name: 'Weekly Meal Plan',
+          description: 'Personalized weekly meal plans with nutrition coaching',
+          metadata: {
+            plan_type: 'weekly-meal-plan',
+          },
+        });
+        console.log('Created new product:', product.id);
+      } else {
+        console.log('Using existing product:', product.id);
+      }
+
+      // Try to get existing price for this product
+      const prices = await stripe.prices.list({
+        product: product.id,
+        limit: 10,
+      });
+      
+      let price = prices.data.find(p => 
+        p.unit_amount === 2000 && 
+        p.currency === 'aud' && 
+        p.recurring?.interval === 'week'
+      );
+      
+      if (!price) {
+        // Create price if it doesn't exist
+        price = await stripe.prices.create({
+          product: product.id,
+          unit_amount: 2000, // $20 AUD in cents
+          currency: 'aud',
+          recurring: {
+            interval: 'week',
+          },
+        });
+        console.log('Created new price:', price.id);
+      } else {
+        console.log('Using existing price:', price.id);
+      }
+      
+      priceId = price.id;
+
+    } catch (error) {
+      console.error('Error with product/price setup:', error);
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ 
+          error: 'Failed to set up product pricing',
+          message: error.message 
+        }),
+      };
+    }
+
+    // Step 2: Create customer
     let customer;
     try {
       const existingCustomers = await stripe.customers.list({
@@ -99,7 +164,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Step 2: Create or get promotional coupon
+    // Step 3: Create or get promotional coupon
     let couponId = null;
     try {
       // Try to get existing coupon first
@@ -124,22 +189,12 @@ exports.handler = async (event, context) => {
       // Continue without coupon if it fails
     }
 
-    // Step 3: Create subscription
+    // Step 4: Create subscription
     try {
       const subscriptionData = {
         customer: customer.id,
         items: [{
-          price_data: {
-            currency: 'aud',
-            product_data: {
-              name: 'Weekly Meal Plan',
-              description: 'Personalized weekly meal plans with nutrition coaching',
-            },
-            unit_amount: 2000, // $20 AUD in cents
-            recurring: {
-              interval: 'week',
-            },
-          },
+          price: priceId, // Use the price ID instead of price_data
         }],
         payment_behavior: 'default_incomplete',
         payment_settings: { 
