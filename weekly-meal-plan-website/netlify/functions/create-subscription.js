@@ -1,98 +1,59 @@
 // This file should be at: netlify/functions/create-subscription.js
 
-// Load the Stripe library with our secret key
 const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
 
-// This function runs when someone tries to subscribe
 exports.handler = async (event, context) => {
-  
-  // Set up response headers (these tell the browser how to handle the response)
   const headers = {
-    'Access-Control-Allow-Origin': '*', // Allow requests from any website
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': 'Content-Type',
     'Access-Control-Allow-Methods': 'POST, OPTIONS',
     'Content-Type': 'application/json',
   };
 
-  // Handle "preflight" requests (browser security check)
   if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers,
-      body: '',
-    };
+    return { statusCode: 200, headers, body: '' };
   }
 
-  // Only accept POST requests (when form is submitted)
   if (event.httpMethod !== 'POST') {
     return {
-      statusCode: 405, // Method not allowed
+      statusCode: 405,
       headers,
       body: JSON.stringify({ error: 'Only POST requests allowed' }),
     };
   }
 
   try {
-    // First, check if we have our Stripe secret key
     if (!process.env.STRIPE_SECRET_KEY) {
-      console.log('ERROR: Stripe secret key is missing from environment variables');
+      console.log('ERROR: Stripe secret key is missing');
       return {
-        statusCode: 500, // Server error
+        statusCode: 500,
         headers,
-        body: JSON.stringify({ 
-          error: 'Payment system not configured properly' 
-        }),
+        body: JSON.stringify({ error: 'Payment system not configured properly' }),
       };
     }
 
-    // Check if we got any data from the form
     if (!event.body) {
-      console.log('ERROR: No data received from subscription form');
       return {
-        statusCode: 400, // Bad request
+        statusCode: 400,
         headers,
         body: JSON.stringify({ error: 'No subscription data received' }),
       };
     }
 
-    // Try to read the subscription information from the form
-    let subscriptionData;
-    try {
-      subscriptionData = JSON.parse(event.body);
-    } catch (error) {
-      console.log('ERROR: Could not read subscription data:', error.message);
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Invalid subscription data format' }),
-      };
-    }
+    const { customer_email, customer_name, payment_method_id } = JSON.parse(event.body);
 
-    // Get the information from the form
-    const { 
-      customer_email, 
-      customer_name,
-      payment_method_id
-    } = subscriptionData;
-
-    // Check that we have the required customer information
     if (!customer_email || !customer_name || !payment_method_id) {
-      console.log('ERROR: Missing customer information or payment method');
-      console.log('Email:', customer_email);
-      console.log('Name:', customer_name);
-      console.log('Payment Method ID:', payment_method_id);
+      console.log('Missing required fields:', { customer_email, customer_name, payment_method_id });
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ 
-          error: 'Please provide email, name, and valid payment method' 
-        }),
+        body: JSON.stringify({ error: 'Missing required fields' }),
       };
     }
 
     console.log('Creating subscription for:', customer_email);
 
-    // Step 1: Create or find customer
+    // Step 1: Create customer
     let customer;
     try {
       const existingCustomers = await stripe.customers.list({
@@ -103,6 +64,18 @@ exports.handler = async (event, context) => {
       if (existingCustomers.data.length > 0) {
         customer = existingCustomers.data[0];
         console.log('Found existing customer:', customer.id);
+        
+        // Attach payment method to existing customer
+        await stripe.paymentMethods.attach(payment_method_id, {
+          customer: customer.id,
+        });
+        
+        // Update customer's default payment method
+        await stripe.customers.update(customer.id, {
+          invoice_settings: {
+            default_payment_method: payment_method_id,
+          },
+        });
       } else {
         customer = await stripe.customers.create({
           email: customer_email,
@@ -115,7 +88,7 @@ exports.handler = async (event, context) => {
         console.log('Created new customer:', customer.id);
       }
     } catch (error) {
-      console.error('Error creating/finding customer:', error);
+      console.error('Error with customer:', error);
       return {
         statusCode: 400,
         headers,
@@ -126,9 +99,34 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Step 2: Create subscription with promotional pricing
+    // Step 2: Create or get promotional coupon
+    let couponId = null;
     try {
-      const subscription = await stripe.subscriptions.create({
+      // Try to get existing coupon first
+      try {
+        const existingCoupon = await stripe.coupons.retrieve('FIRST_4_WEEKS_50_OFF');
+        couponId = existingCoupon.id;
+        console.log('Using existing coupon:', couponId);
+      } catch (retrieveError) {
+        // Coupon doesn't exist, create it
+        const coupon = await stripe.coupons.create({
+          id: 'FIRST_4_WEEKS_50_OFF',
+          percent_off: 50,
+          duration: 'repeating',
+          duration_in_months: 1,
+          name: 'First 4 Weeks - 50% OFF',
+        });
+        couponId = coupon.id;
+        console.log('Created new coupon:', couponId);
+      }
+    } catch (couponError) {
+      console.error('Coupon error:', couponError);
+      // Continue without coupon if it fails
+    }
+
+    // Step 3: Create subscription
+    try {
+      const subscriptionData = {
         customer: customer.id,
         items: [{
           price_data: {
@@ -137,31 +135,33 @@ exports.handler = async (event, context) => {
               name: 'Weekly Meal Plan',
               description: 'Personalized weekly meal plans with nutrition coaching',
             },
-            unit_amount: 2000, // Regular price: $20 AUD in cents
+            unit_amount: 2000, // $20 AUD in cents
             recurring: {
               interval: 'week',
-              interval_count: 1,
             },
           },
         }],
         payment_behavior: 'default_incomplete',
-        payment_settings: { save_default_payment_method: 'on_subscription' },
+        payment_settings: { 
+          save_default_payment_method: 'on_subscription' 
+        },
         expand: ['latest_invoice.payment_intent'],
-        // Apply promotional discount for first 4 weeks
-        discounts: [{
-          coupon: await createPromotionalCoupon(), // We'll create this coupon
-        }],
         metadata: {
           customer_email: customer_email,
           customer_name: customer_name,
           plan_type: 'weekly-meal-plan',
-          promotional_period: 'first-4-weeks-50-percent-off'
         },
-      });
+      };
+
+      // Add coupon if available
+      if (couponId) {
+        subscriptionData.discounts = [{ coupon: couponId }];
+      }
+
+      const subscription = await stripe.subscriptions.create(subscriptionData);
 
       console.log('SUCCESS: Subscription created:', subscription.id);
 
-      // Send back the subscription information to the website
       return {
         statusCode: 200,
         headers,
@@ -185,23 +185,7 @@ exports.handler = async (event, context) => {
     }
 
   } catch (error) {
-    // If something goes wrong, log the error and send back an error message
-    console.log('SUBSCRIPTION ERROR:', error.message);
-    console.log('Error type:', error.type);
-    
-    // Handle different types of errors
-    if (error.type && error.type.includes('Stripe')) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Subscription processing error',
-          message: error.message 
-        }),
-      };
-    }
-    
-    // Generic error response
+    console.error('SUBSCRIPTION ERROR:', error);
     return {
       statusCode: 500,
       headers,
@@ -212,37 +196,3 @@ exports.handler = async (event, context) => {
     };
   }
 };
-
-// Helper function to create promotional coupon
-async function createPromotionalCoupon() {
-  try {
-    // Check if coupon already exists
-    const existingCoupons = await stripe.coupons.list({ limit: 100 });
-    const existingCoupon = existingCoupons.data.find(coupon => 
-      coupon.id === 'FIRST_4_WEEKS_50_OFF'
-    );
-    
-    if (existingCoupon) {
-      return existingCoupon.id;
-    }
-
-    // Create new coupon if it doesn't exist
-    const coupon = await stripe.coupons.create({
-      id: 'FIRST_4_WEEKS_50_OFF',
-      percent_off: 50,
-      duration: 'repeating',
-      duration_in_months: 1, // This will apply for about 4 weeks
-      name: 'First 4 Weeks - 50% OFF',
-      metadata: {
-        description: 'Promotional discount for first 4 weeks of meal plan'
-      }
-    });
-    
-    console.log('Created promotional coupon:', coupon.id);
-    return coupon.id;
-  } catch (error) {
-    console.error('Error with promotional coupon:', error);
-    // Return null if coupon creation fails - subscription will proceed without discount
-    return null;
-  }
-}
