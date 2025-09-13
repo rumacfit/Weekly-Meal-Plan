@@ -24,7 +24,7 @@
         .header-section {
             background: white;
             padding: 20px 0;
-            border-bottom: 1px solid #f0f0f0;
+            /* REMOVED: border-bottom: 1px solid #f0f0f0; */
         }
 
         .header-container {
@@ -540,7 +540,8 @@
         }
 
         .package-selection {
-            background: #f8f9fa;
+            /* CHANGED: from #f8f9fa to white to match checkout side */
+            background: white;
             border-radius: 20px;
             padding: 40px;
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.08);
@@ -796,6 +797,13 @@
             margin-top: 20px;
             font-size: 0.85rem;
             color: #666;
+        }
+
+        /* FIXED: Properly sized security icon with checkmark */
+        .security-icon {
+            width: 18px;
+            height: 18px;
+            opacity: 0.8;
         }
 
         .error-message {
@@ -1450,8 +1458,8 @@
                         </button>
 
                         <div class="security-info">
-                            <svg class="security-icon" viewBox="0 0 24 24" fill="currentColor">
-                                <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21V5L12,1M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/>
+                            <svg class="security-icon" width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12,1L3,5V11C3,16.55 6.84,21.74 12,23C17.16,21.74 21,16.55 21V11V5L12,1M10,17L6,13L7.41,11.59L10,14.17L16.59,7.58L18,9L10,17Z"/>
                             </svg>
                             <span>Secured by Stripe & 256-bit SSL encryption</span>
                         </div>
@@ -1727,6 +1735,7 @@
             successElement.classList.add('show');
             
             document.getElementById('payment-form').style.display = 'none';
+            
         }
 
         // FAQ functionality
