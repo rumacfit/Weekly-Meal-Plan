@@ -53,68 +53,7 @@ exports.handler = async (event, context) => {
 
     console.log('Creating subscription for:', customer_email);
 
-    // Step 1: Create or get product and price
-    let priceId;
-    try {
-      const products = await stripe.products.list({
-        limit: 100,
-      });
-      
-      let product = products.data.find(p => p.metadata.plan_type === 'weekly-meal-plan');
-      
-      if (!product) {
-        product = await stripe.products.create({
-          name: 'Weekly Meal Plan',
-          description: 'Personalized weekly meal plans with nutrition coaching',
-          metadata: {
-            plan_type: 'weekly-meal-plan',
-          },
-        });
-        console.log('Created new product:', product.id);
-      } else {
-        console.log('Using existing product:', product.id);
-      }
-
-      const prices = await stripe.prices.list({
-        product: product.id,
-        limit: 10,
-      });
-      
-      let price = prices.data.find(p => 
-        p.unit_amount === 2000 && 
-        p.currency === 'aud' && 
-        p.recurring?.interval === 'week'
-      );
-      
-      if (!price) {
-        price = await stripe.prices.create({
-          product: product.id,
-          unit_amount: 2000, // $20 AUD in cents
-          currency: 'aud',
-          recurring: {
-            interval: 'week',
-          },
-        });
-        console.log('Created new price:', price.id);
-      } else {
-        console.log('Using existing price:', price.id);
-      }
-      
-      priceId = price.id;
-
-    } catch (error) {
-      console.error('Error with product/price setup:', error);
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ 
-          error: 'Failed to set up product pricing',
-          message: error.message 
-        }),
-      };
-    }
-
-    // Step 2: Create customer
+    // Create customer
     let customer;
     try {
       const existingCustomers = await stripe.customers.list({
@@ -126,16 +65,19 @@ exports.handler = async (event, context) => {
         customer = existingCustomers.data[0];
         console.log('Found existing customer:', customer.id);
         
+        // Attach payment method to existing customer
         await stripe.paymentMethods.attach(payment_method_id, {
           customer: customer.id,
         });
         
+        // Update default payment method
         await stripe.customers.update(customer.id, {
           invoice_settings: {
             default_payment_method: payment_method_id,
           },
         });
       } else {
+        // Create new customer
         customer = await stripe.customers.create({
           email: customer_email,
           name: customer_name,
@@ -158,34 +100,22 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Step 3: Create or get promotional coupon
-    let couponId = null;
+    // Create subscription with inline price for $10 AUD promotional rate
     try {
-      try {
-        const existingCoupon = await stripe.coupons.retrieve('FIRST_4_WEEKS_50_OFF');
-        couponId = existingCoupon.id;
-        console.log('Using existing coupon:', couponId);
-      } catch (retrieveError) {
-        const coupon = await stripe.coupons.create({
-          id: 'FIRST_4_WEEKS_50_OFF',
-          percent_off: 50,
-          duration: 'repeating',
-          duration_in_months: 1,
-          name: 'First 4 Weeks - 50% OFF',
-        });
-        couponId = coupon.id;
-        console.log('Created new coupon:', couponId);
-      }
-    } catch (couponError) {
-      console.error('Coupon error:', couponError);
-    }
-
-    // Step 4: Create subscription
-    try {
-      const subscriptionData = {
+      const subscription = await stripe.subscriptions.create({
         customer: customer.id,
         items: [{
-          price: priceId,
+          price_data: {
+            currency: 'aud',
+            product_data: {
+              name: 'Weekly Meal Plan (Promotional Rate)',
+              description: 'First 4 weeks at promotional rate',
+            },
+            unit_amount: 1000, // $10 AUD in cents
+            recurring: {
+              interval: 'week',
+            },
+          },
         }],
         payment_behavior: 'default_incomplete',
         payment_settings: { 
@@ -196,14 +126,11 @@ exports.handler = async (event, context) => {
           customer_email: customer_email,
           customer_name: customer_name,
           plan_type: 'weekly-meal-plan',
+          promotional_weeks_used: '0',
+          promotional_weeks_total: '4',
+          regular_price_amount: '2000', // $20 AUD for later
         },
-      };
-
-      if (couponId) {
-        subscriptionData.discounts = [{ coupon: couponId }];
-      }
-
-      const subscription = await stripe.subscriptions.create(subscriptionData);
+      });
 
       console.log('SUCCESS: Subscription created:', subscription.id);
 
