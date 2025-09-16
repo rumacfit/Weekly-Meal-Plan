@@ -60,9 +60,8 @@ exports.handler = async (event, context) => {
                   id: subscription.items.data[0].id,
                   price_data: {
                     currency: 'aud',
-                    product_data: {
+                    product: {
                       name: 'Weekly Meal Plan',
-                      description: 'Regular weekly meal plan',
                     },
                     unit_amount: 2000, // $20 AUD
                     recurring: {
