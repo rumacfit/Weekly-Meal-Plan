@@ -140,7 +140,7 @@ exports.handler = async (event, context) => {
           customer_name: customer_name,
           plan_type: 'weekly-meal-plan',
           promotional_weeks_used: '0',
-          promotional_weeks_total: '4',
+          promotional_weeks_total: '1',
           promotional_price_id: price.id,
         },
       });
