@@ -65,19 +65,16 @@ exports.handler = async (event, context) => {
         customer = existingCustomers.data[0];
         console.log('Found existing customer:', customer.id);
         
-        // Attach payment method to existing customer
         await stripe.paymentMethods.attach(payment_method_id, {
           customer: customer.id,
         });
         
-        // Update default payment method
         await stripe.customers.update(customer.id, {
           invoice_settings: {
             default_payment_method: payment_method_id,
           },
         });
       } else {
-        // Create new customer
         customer = await stripe.customers.create({
           email: customer_email,
           name: customer_name,
@@ -100,21 +97,38 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Create subscription with inline price for $10 AUD promotional rate
+    // Create product and price separately
     try {
+      let product;
+      const existingProducts = await stripe.products.list({
+        limit: 10,
+      });
+      
+      product = existingProducts.data.find(p => p.name === 'Weekly Meal Plan');
+      
+      if (!product) {
+        product = await stripe.products.create({
+          name: 'Weekly Meal Plan',
+        });
+        console.log('Created product:', product.id);
+      } else {
+        console.log('Using existing product:', product.id);
+      }
+
+      const price = await stripe.prices.create({
+        product: product.id,
+        unit_amount: 1000, // $10 AUD
+        currency: 'aud',
+        recurring: {
+          interval: 'week',
+        },
+      });
+      console.log('Created price:', price.id);
+
       const subscription = await stripe.subscriptions.create({
         customer: customer.id,
         items: [{
-          price_data: {
-            currency: 'aud',
-            product_data: {
-              name: 'Weekly Meal Plan (Promotional Rate)',
-            },
-            unit_amount: 1000, // $10 AUD in cents
-            recurring: {
-              interval: 'week',
-            },
-          },
+          price: price.id,
         }],
         payment_behavior: 'default_incomplete',
         payment_settings: { 
@@ -127,7 +141,7 @@ exports.handler = async (event, context) => {
           plan_type: 'weekly-meal-plan',
           promotional_weeks_used: '0',
           promotional_weeks_total: '4',
-          regular_price_amount: '2000', // $20 AUD for later
+          promotional_price_id: price.id,
         },
       });
 
