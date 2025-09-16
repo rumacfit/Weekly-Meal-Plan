@@ -47,7 +47,7 @@ exports.handler = async (event, context) => {
           // Check if this is a promotional subscription
           if (subscription.metadata.promotional_weeks_used !== undefined) {
             const weeksUsed = parseInt(subscription.metadata.promotional_weeks_used) + 1;
-            const totalPromotionalWeeks = parseInt(subscription.metadata.promotional_weeks_total) || 4;
+            const totalPromotionalWeeks = parseInt(subscription.metadata.promotional_weeks_total) || 1;
             
             console.log(`Subscription ${subscription.id}: Week ${weeksUsed} of ${totalPromotionalWeeks} promotional weeks`);
             
