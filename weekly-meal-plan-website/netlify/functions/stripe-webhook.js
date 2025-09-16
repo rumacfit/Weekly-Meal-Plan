@@ -60,7 +60,7 @@ exports.handler = async (event, context) => {
                   id: subscription.items.data[0].id,
                   price_data: {
                     currency: 'aud',
-                    product: {
+                    product_data: {
                       name: 'Weekly Meal Plan',
                     },
                     unit_amount: 2000, // $20 AUD
