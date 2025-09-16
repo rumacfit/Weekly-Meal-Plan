@@ -107,9 +107,8 @@ exports.handler = async (event, context) => {
         items: [{
           price_data: {
             currency: 'aud',
-            product_data: {
+            product: {
               name: 'Weekly Meal Plan (Promotional Rate)',
-              description: 'First 4 weeks at promotional rate',
             },
             unit_amount: 1000, // $10 AUD in cents
             recurring: {
