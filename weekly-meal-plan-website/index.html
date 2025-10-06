@@ -45,7 +45,6 @@
         .header-section {
             background: white;
             padding: 20px 0;
-            /* REMOVED: border-bottom: 1px solid #f0f0f0; */
         }
 
         .header-container {
@@ -562,7 +561,6 @@
         }
 
         .package-selection {
-            /* CHANGED: from #f8f9fa to white to match checkout side */
             background: white;
             border-radius: 20px;
             padding: 40px;
@@ -604,18 +602,6 @@
             margin-bottom: 20px;
         }
 
-        .special-offer {
-            background: linear-gradient(135deg, #c4d9c1 0%, #b3d0af 100%);
-            color: white;
-            font-size: 0.9rem;
-            font-weight: 600;
-            text-transform: uppercase;
-            padding: 8px 16px;
-            border-radius: 20px;
-            margin-bottom: 20px;
-            display: inline-block;
-        }
-
         .package-price {
             text-align: center;
             margin-bottom: 30px;
@@ -654,12 +640,6 @@
             color: #666;
             align-self: flex-end;
             margin-bottom: 8px;
-        }
-
-        .pricing-note {
-            font-size: 0.9rem;
-            color: #c4d9c1;
-            font-weight: 600;
         }
 
         .package-features {
@@ -822,7 +802,6 @@
             color: #666;
         }
 
-        /* FIXED: Properly sized security icon with checkmark */
         .security-icon {
             width: 18px;
             height: 18px;
@@ -1427,19 +1406,17 @@
 
             <div class="payment-grid">
                 <div class="package-selection">
-                    <div class="popular-badge">50% OFF</div>
+                    <div class="popular-badge">$20 OFF</div>
                     <div class="package-header">
                         <h3 class="package-name">Weekly Meal Plan</h3>
                         <p class="package-duration">Ongoing Nutrition Support</p>
-                        <div class="special-offer">First 4 Weeks Half Price</div>
                         <div class="package-price">
-                            <div class="original-price">Was $20/week</div>
+                            <div class="original-price">Was $50/week</div>
                             <div class="current-price">
                                 <span class="price-currency">$</span>
-                                <span class="price-amount">10</span>
+                                <span class="price-amount">30</span>
                                 <span class="price-period">per week</span>
                             </div>
-                            <div class="pricing-note">First 4 weeks, then $20/week</div>
                         </div>
                     </div>
                     <ul class="package-features">
@@ -1465,15 +1442,15 @@
                             <h4 class="summary-title">Order Summary</h4>
                             <div class="summary-row">
                                 <span>Weekly Meal Plan (Weekly)</span>
-                                <span style="text-decoration: line-through; color: #999;">$20.00</span>
+                                <span style="text-decoration: line-through; color: #999;">$50.00</span>
                             </div>
                             <div class="summary-row">
-                                <span>Special Price (50% OFF)</span>
-                                <span style="color: #c4d9c1; font-weight: 600;">-$10.00</span>
+                                <span>Special Price (40% OFF)</span>
+                                <span style="color: #c4d9c1; font-weight: 600;">-$20.00</span>
                             </div>
                             <div class="summary-row total">
                                 <span>Total (Weekly)</span>
-                                <span>$10.00 AUD</span>
+                                <span>$30.00 AUD</span>
                             </div>
                         </div>
 
@@ -1503,7 +1480,7 @@
                         </div>
 
                         <button type="submit" id="submit-button" class="pay-button">
-                            Start Weekly Plan - $10 AUD
+                            Start Weekly Plan - $30 AUD
                         </button>
 
                         <div class="security-info">
@@ -1540,7 +1517,6 @@
                     </div>
                 </div>
 
-                 <div class="faq-list">
                 <div class="faq-item">
                     <div class="faq-question">
                         <h3>How often do I need to cook and meal prep?</h3>
@@ -1624,7 +1600,7 @@
                 <h3 class="final-cta-title">Ready to Transform Your Nutrition?</h3>
                 <p class="final-cta-text">Start your <span class="cta-highlight">Weekly Meal Plan</span> and gain confidence in your nutrition.</p>
                 <p class="final-cta-text">Get weekly recipes, community support, and expert guidance.</p>
-                <p class="final-cta-text">First 4 weeks for only <span class="cta-highlight">$10/week</span>.</p>
+                <p class="final-cta-text">Only <span class="cta-highlight">$30/week</span> - cancel anytime.</p>
             </div>
         </div>
     </section>
@@ -1764,7 +1740,7 @@
                     showError('There was an issue setting up your subscription. Please try again.');
                 } finally {
                     submitButton.disabled = false;
-                    submitButton.textContent = 'Start Weekly Plan - $10 AUD';
+                    submitButton.textContent = 'Start Weekly Plan - $30 AUD';
                 }
             });
         });
