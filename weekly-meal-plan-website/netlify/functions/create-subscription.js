@@ -97,7 +97,7 @@ exports.handler = async (event, context) => {
       };
     }
 
-    // Create product and price separately
+    // Create product and price
     try {
       let product;
       const existingProducts = await stripe.products.list({
@@ -117,7 +117,7 @@ exports.handler = async (event, context) => {
 
       const price = await stripe.prices.create({
         product: product.id,
-        unit_amount: 1000, // $10 AUD
+        unit_amount: 3000, // $30 AUD
         currency: 'aud',
         recurring: {
           interval: 'week',
@@ -139,9 +139,6 @@ exports.handler = async (event, context) => {
           customer_email: customer_email,
           customer_name: customer_name,
           plan_type: 'weekly-meal-plan',
-          promotional_weeks_used: '0',
-          promotional_weeks_total: '4',
-          promotional_price_id: price.id,
         },
       });
 
